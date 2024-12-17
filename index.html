@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Color Match Challenge 🌈</title>
+  
+  <!-- Favicon (Tab Image) -->
+  <link rel="icon" type="image/png" href="NLC Profile.png">
+  
+  <style>
+    body {
+      font-family: 'Comic Sans MS', cursive, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(45deg, #ff0099, #ffcc00, #33cc33, #0099ff, #9933ff);
+      background-size: 400% 400%;
+      animation: rainbowBG 6s infinite;
+      height: 100vh;
+    }
+
+    @keyframes rainbowBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .game-container, .rules-container {
+      text-align: center;
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+      position: relative;
+      z-index: 2;
+    }
+
+    h1 {
+      font-size: 40px;
+      font-weight: bold;
+      color: #ff0099;
+      text-shadow: 4px 4px #333;
+    }
+
+    #score, #timer, #level {
+      font-size: 22px;
+      margin-bottom: 20px;
+      color: #333;
+      font-weight: bold;
+      text-shadow: 2px 2px #ffcc00;
+    }
+
+    #color-name {
+      font-size: 48px;
+      font-weight: bold;
+      margin: 20px 0;
+      animation: colorPulse 1s infinite alternate;
+      color: #333;
+    }
+
+    @keyframes colorPulse {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.1); }
+    }
+
+    #buttons-container {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .color-button {
+      width: 130px;
+      height: 70px;
+      border: none;
+      border-radius: 15px;
+      cursor: pointer;
+      font-size: 16px;
+      color: #fff;
+      font-weight: bold;
+      text-shadow: 1px 1px #333;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .color-button:hover {
+      transform: scale(1.1);
+      box-shadow: 0px 0px 20px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    #message {
+      margin-top: 20px;
+      font-size: 28px;
+      font-weight: bold;
+      text-shadow: 2px 2px #ffcc00;
+    }
+
+    #message.correct {
+      color: green;
+    }
+
+    #message.wrong {
+      color: red;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    /* Custom notification style */
+    #custom-notification {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: #fff;
+      padding: 40px;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      text-align: center;
+      display: none;
+      z-index: 3;
+    }
+
+    #custom-notification h2 {
+      font-size: 30px;
+      color: #ff0000;
+      text-shadow: 3px 3px #ffcc00;
+    }
+
+    #notification-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 25px;
+    }
+
+    .notification-button {
+      padding: 15px 25px;
+      font-size: 22px;
+      background-color: #ff0099;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .notification-button:hover {
+      transform: scale(1.2);
+      box-shadow: 0px 0px 30px 8px rgba(0, 0, 0, 0.3);
+    }
+
+  </style>
+</head>
+<body>
+  <!-- Rules Screen -->
+  <div class="rules-container">
+    <h1>Welcome to the Color Match Challenge! 🌈</h1>
+    <p>Rules:</p>
+    <ul style="text-align: left; max-width: 400px; margin: 0 auto;">
+      <li>Match the displayed color name with the correct button.</li>
+      <li>Levels 1-6: You have 1 minute to solve as many as possible.</li>
+      <li>Levels 7-12: You have 30 seconds to solve as many as possible.</li>
+      <li>Each level adds more colors!</li>
+      <li>Click the correct button to earn points.</li>
+    </ul>
+  </div>
+
+  <!-- Game Screen -->
+  <div class="game-container hidden">
+    <h1>🌈 Color Match Challenge 🎨</h1>
+    <div id="level">Level: 1</div>
+    <div id="score">Score: 0</div>
+    <div id="timer">Time Left: 60s</div>
+    <div id="color-name"></div>
+    <div id="buttons-container"></div>
+    <div id="message"></div>
+  </div>
+
+  <!-- Custom Notification -->
+  <div id="custom-notification">
+    <h2>Game Over! You Lost!</h2>
+    <p>Your Score: <span id="final-score"></span> | Level: <span id="final-level"></span></p>
+    <div id="notification-buttons">
+      <button class="notification-button" onclick="playAgain()">Play Again</button>
+      <button class="notification-button" onclick="quitGame()">Quit</button>
+    </div>
+  </div>
+  
+   <!-- Audio for certain sound effects -->
+   <audio id="correct-sound" src="Correct.mp3"></audio>
+   <<audio id="game-over-sound" src="Game Over.mp3"></audio>
+
+  <script>
+    // List of all available colors
+    const allColors = [
+      { name: "Red", hex: "#FF0000" },
+      { name: "Blue", hex: "#0000FF" },
+      { name: "Green", hex: "#008000" },
+      { name: "Yellow", hex: "#FFFF00" },
+      { name: "Orange", hex: "#FFA500" },
+      { name: "Purple", hex: "#800080" },
+      { name: "Pink", hex: "#FF1493" },
+      { name: "Cyan", hex: "#00FFFF" },
+      { name: "Magenta", hex: "#FF00FF" },
+      { name: "Lime", hex: "#32CD32" },
+      { name: "Teal", hex: "#008080" },
+      { name: "Maroon", hex: "#800000" },
+      { name: "Navy", hex: "#000080" },
+      { name: "Brown", hex: "#A52A2A" },
+      { name: "Gold", hex: "#FFD700" },
+    ];
+
+    // DOM elements
+    const rulesContainer = document.querySelector(".rules-container");
+    const gameContainer = document.querySelector(".game-container");
+    const colorNameElement = document.getElementById("color-name");
+    const buttonsContainer = document.getElementById("buttons-container");
+    const scoreElement = document.getElementById("score");
+    const timerElement = document.getElementById("timer");
+    const levelElement = document.getElementById("level");
+    const messageElement = document.getElementById("message");
+    const customNotification = document.getElementById("custom-notification");
+    const finalScoreElement = document.getElementById("final-score");
+    const finalLevelElement = document.getElementById("final-level");
+	const correctSound = document.getElementById("correct-sound");
+	const gameOverSound = document.getElementById("game-over-sound");
+
+    let score = 0;
+    let currentColor = "";
+    let timeLeft = 60; // Initial timer for levels 1-6
+    let difficulty = 1;
+
+    // Start the game after 3 seconds (close rules screen)
+    setTimeout(() => {
+      rulesContainer.classList.add("hidden");
+      gameContainer.classList.remove("hidden");
+      startGame();
+    }, 5000);
+
+    // Start the game
+    function startGame() {
+      startTimer();
+      setNewRound();
+    }
+
+    // Timer logic
+    function startTimer() {
+      const timerInterval = setInterval(() => {
+        timeLeft--;
+        timerElement.textContent = `Time Left: ${timeLeft}s`;
+
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          endGame();
+        }
+      }, 1000);
+    }
+
+    // End the game - show custom notification
+    function endGame() {
+      customNotification.style.display = "block"; // Show custom notification
+      gameContainer.classList.add("hidden"); // Hide the game screen
+      finalScoreElement.textContent = score;
+      finalLevelElement.textContent = difficulty;
+    }
+
+    // Set a new round
+    function setNewRound() {
+      // Adjust difficulty every 10 points
+      if (score % 10 === 0 && score > 0 && difficulty < 12) {
+        difficulty++;
+        timeLeft = difficulty > 6 ? 30 : 60; // Change timer for levels 7-12
+        levelElement.textContent = `Level: ${difficulty}`;
+      }
+
+      // Select colors based on difficulty
+      const availableColors = allColors.slice(0, 6 + difficulty);
+      const randomColor = availableColors[Math.floor(Math.random() * availableColors.length)];
+      currentColor = randomColor.name;
+
+      // Update color name and buttons
+      const randomTextColor = availableColors[Math.floor(Math.random() * availableColors.length)].hex;
+      colorNameElement.textContent = currentColor;
+      colorNameElement.style.color = randomTextColor;
+
+      generateColorButtons(availableColors);
+      messageElement.textContent = ""; // Clear message
+    }
+
+    // Generate color buttons
+    function generateColorButtons(availableColors) {
+      buttonsContainer.innerHTML = "";
+      availableColors.forEach(color => {
+        const button = document.createElement("button");
+        button.className = "color-button";
+        button.style.backgroundColor = color.hex;
+        button.textContent = color.name;
+        button.addEventListener("click", () => checkAnswer(color.name));
+        buttonsContainer.appendChild(button);
+      });
+    }
+
+    // Check if the clicked answer is correct
+    function checkAnswer(selectedColor) {
+      if (selectedColor === currentColor) {
+	    correctSound.play();
+        score++;
+        messageElement.textContent = "Correct!";
+        messageElement.className = "correct";
+      } else {
+        messageElement.textContent = "Game Over!";
+        messageElement.className = "wrong";
+		gameOverSound.play();
+        endGame(); // End the game on a wrong answer
+      }
+      updateScore();
+      setNewRound();
+    }
+
+    // Update the score display
+    function updateScore() {
+      scoreElement.textContent = `Score: ${score}`;
+    }
+
+    // Play Again function
+    function playAgain() {
+      score = 0;
+      timeLeft = 60;
+      difficulty = 1;
+      levelElement.textContent = `Level: 1`;
+      scoreElement.textContent = `Score: 0`;
+      timerElement.textContent = `Time Left: 60s`;
+      customNotification.style.display = "none"; // Hide the custom notification
+      gameContainer.classList.remove("hidden");
+      startGame();
+    }
+
+    // Quit Game function (closes the page)
+    function quitGame() {
+      window.close(); // Closes the browser tab
+    }
+  </script>
+</body>
+</html>
