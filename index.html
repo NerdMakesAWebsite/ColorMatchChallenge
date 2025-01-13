@@ -20,6 +20,7 @@
       background-size: 400% 400%;
       animation: rainbowBG 6s infinite;
       height: 100vh;
+      flex-direction: column; /* Added to support footer positioning */
     }
 
     @keyframes rainbowBG {
@@ -153,6 +154,16 @@
       box-shadow: 0px 0px 30px 8px rgba(0, 0, 0, 0.3);
     }
 
+    footer {
+      margin-top: auto;
+      padding: 20px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: bold;
+      color: white;
+      text-shadow: 1px 1px #333;
+    }
+
   </style>
 </head>
 <body>
@@ -190,9 +201,13 @@
     </div>
   </div>
   
-   <!-- Audio for certain sound effects -->
-   <audio id="correct-sound" src="Correct.mp3"></audio>
-   <<audio id="game-over-sound" src="Game Over.mp3"></audio>
+  <!-- Audio for certain sound effects -->
+  <audio id="correct-sound" src="Correct.mp3"></audio>
+  <audio id="game-over-sound" src="Game Over.mp3"></audio>
+
+  <footer>
+    <p>&copy; 2025 NerdJoe. All rights reserved.</p>
+  </footer>
 
   <script>
     // List of all available colors
