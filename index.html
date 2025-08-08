@@ -172,11 +172,13 @@
     <h1>Welcome to the Color Match Challenge! 🌈</h1>
     <p>Rules:</p>
     <ul style="text-align: left; max-width: 400px; margin: 0 auto;">
-      <li>Match the displayed color name with the correct button.</li>
-      <li>Levels 1-6: You have 1 minute to solve as many as possible.</li>
-      <li>Levels 7-12: You have 30 seconds to solve as many as possible.</li>
-      <li>Each level adds more colors!</li>
-      <li>Click the correct button to earn points.</li>
+      <li>Match based on the instruction shown!</li>
+      <li>BEWARE: Text colors may not match the words!</li>
+      <li>Sometimes you'll see HEX codes or color blocks!</li>
+      <li>Watch for REVERSE challenges at high levels!</li>
+      <li>Time decreases as levels increase - stay focused!</li>
+      <li>Difficulty increases every 5 correct answers.</li>
+      <li>One wrong answer = Game Over!</li>
     </ul>
   </div>
 
@@ -187,6 +189,7 @@
     <div id="score">Score: 0</div>
     <div id="timer">Time Left: 60s</div>
     <div id="color-name"></div>
+    <div id="challenge-instruction" style="font-size: 18px; color: #666; margin: 10px 0; font-weight: bold;"></div>
     <div id="buttons-container"></div>
     <div id="message"></div>
   </div>
@@ -210,7 +213,7 @@
   </footer>
 
   <script>
-    // List of all available colors
+    // Expanded list of colors for more difficulty
     const allColors = [
       { name: "Red", hex: "#FF0000" },
       { name: "Blue", hex: "#0000FF" },
@@ -227,6 +230,31 @@
       { name: "Navy", hex: "#000080" },
       { name: "Brown", hex: "#A52A2A" },
       { name: "Gold", hex: "#FFD700" },
+      { name: "Violet", hex: "#8A2BE2" },
+      { name: "Indigo", hex: "#4B0082" },
+      { name: "Coral", hex: "#FF7F50" },
+      { name: "Salmon", hex: "#FA8072" },
+      { name: "Turquoise", hex: "#40E0D0" },
+      { name: "Crimson", hex: "#DC143C" },
+      { name: "Olive", hex: "#808000" },
+      { name: "Khaki", hex: "#F0E68C" },
+      { name: "Plum", hex: "#DDA0DD" },
+      { name: "Orchid", hex: "#DA70D6" },
+      { name: "Tan", hex: "#D2B48C" },
+      { name: "Silver", hex: "#C0C0C0" },
+      { name: "Gray", hex: "#808080" },
+      { name: "Slate", hex: "#708090" },
+      { name: "Mint", hex: "#98FB98" },
+      { name: "Aqua", hex: "#00FFFF" },
+      { name: "Lavender", hex: "#E6E6FA" },
+      { name: "Peach", hex: "#FFCBA4" },
+      { name: "Rose", hex: "#FF007F" },
+      { name: "Emerald", hex: "#50C878" },
+      { name: "Ruby", hex: "#E0115F" },
+      { name: "Sapphire", hex: "#0F52BA" },
+      { name: "Amber", hex: "#FFBF00" },
+      { name: "Jade", hex: "#00A86B" },
+      { name: "Ivory", hex: "#FFFFF0" }
     ];
 
     // DOM elements
@@ -241,13 +269,18 @@
     const customNotification = document.getElementById("custom-notification");
     const finalScoreElement = document.getElementById("final-score");
     const finalLevelElement = document.getElementById("final-level");
-	const correctSound = document.getElementById("correct-sound");
+    const correctSound = document.getElementById("correct-sound");
 	const gameOverSound = document.getElementById("game-over-sound");
+    const challengeInstruction = document.getElementById("challenge-instruction");
 
     let score = 0;
     let currentColor = "";
-    let timeLeft = 60; // Initial timer for levels 1-6
+    let timeLeft = 60;
     let difficulty = 1;
+    let timerInterval;
+    let roundDelay = 0; // Delay between rounds
+    let currentChallenge = "name"; // "name", "hex", or "color"
+    let streak = 0; // Consecutive correct answers
 
     // Start the game after 3 seconds (close rules screen)
     setTimeout(() => {
@@ -262,11 +295,28 @@
       setNewRound();
     }
 
-    // Timer logic
+    // Enhanced timer logic with decreasing time limits
     function startTimer() {
-      const timerInterval = setInterval(() => {
+      // Set initial time based on difficulty
+      if (difficulty <= 3) timeLeft = 45; // Levels 1-3: 45 seconds
+      else if (difficulty <= 6) timeLeft = 35; // Levels 4-6: 35 seconds
+      else if (difficulty <= 9) timeLeft = 25; // Levels 7-9: 25 seconds
+      else timeLeft = 15; // Levels 10+: 15 seconds
+
+      timerElement.textContent = `Time Left: ${timeLeft}s`;
+
+      timerInterval = setInterval(() => {
         timeLeft--;
         timerElement.textContent = `Time Left: ${timeLeft}s`;
+
+        // Add urgency visual effect when time is low
+        if (timeLeft <= 10) {
+          timerElement.style.color = "red";
+          timerElement.style.animation = "colorPulse 0.5s infinite alternate";
+        } else {
+          timerElement.style.color = "#333";
+          timerElement.style.animation = "none";
+        }
 
         if (timeLeft <= 0) {
           clearInterval(timerInterval);
@@ -277,63 +327,217 @@
 
     // End the game - show custom notification
     function endGame() {
-      customNotification.style.display = "block"; // Show custom notification
-      gameContainer.classList.add("hidden"); // Hide the game screen
+      if (timerInterval) clearInterval(timerInterval);
+      customNotification.style.display = "block";
+      gameContainer.classList.add("hidden");
       finalScoreElement.textContent = score;
       finalLevelElement.textContent = difficulty;
+      gameOverSound.play();
     }
 
-    // Set a new round
+    // Enhanced difficulty progression and confusion mechanics
     function setNewRound() {
-      // Adjust difficulty every 10 points
-      if (score % 10 === 0 && score > 0 && difficulty < 12) {
-        difficulty++;
-        timeLeft = difficulty > 6 ? 30 : 60; // Change timer for levels 7-12
-        levelElement.textContent = `Level: ${difficulty}`;
+      // Increase difficulty every 5 points (more frequent progression)
+      if (score > 0 && score % 5 === 0) {
+        const newDifficulty = Math.floor(score / 5) + 1;
+        if (newDifficulty > difficulty) {
+          difficulty = newDifficulty;
+          levelElement.textContent = `Level: ${difficulty}`;
+          
+          // Restart timer with new time limit
+          if (timerInterval) clearInterval(timerInterval);
+          startTimer();
+        }
       }
 
-      // Select colors based on difficulty
-      const availableColors = allColors.slice(0, 6 + difficulty);
-      const randomColor = availableColors[Math.floor(Math.random() * availableColors.length)];
-      currentColor = randomColor.name;
+      // Add delay between rounds at higher levels for extra pressure
+      roundDelay = difficulty > 5 ? Math.min(difficulty * 100, 1000) : 0;
 
-      // Update color name and buttons
-      const randomTextColor = availableColors[Math.floor(Math.random() * availableColors.length)].hex;
-      colorNameElement.textContent = currentColor;
-      colorNameElement.style.color = randomTextColor;
+      setTimeout(() => {
+        // Increase number of color options based on difficulty
+        const colorCount = Math.min(4 + difficulty * 2, allColors.length);
+        const availableColors = allColors.slice(0, colorCount);
+        
+        // Select random color for the correct answer
+        const randomColor = availableColors[Math.floor(Math.random() * availableColors.length)];
+        currentColor = randomColor.name;
 
-      generateColorButtons(availableColors);
-      messageElement.textContent = ""; // Clear message
+        // Determine challenge type based on difficulty and randomness
+        determineChallengeType();
+
+        // Display the challenge based on type
+        displayChallenge(randomColor, availableColors);
+
+        generateColorButtons(availableColors);
+        messageElement.textContent = "";
+      }, roundDelay);
     }
 
-    // Generate color buttons
+    // NEW: Determine what type of challenge to present
+    function determineChallengeType() {
+      const rand = Math.random();
+      
+      if (difficulty <= 3) {
+        // Early levels: Mostly name challenges
+        currentChallenge = rand < 0.8 ? "name" : (rand < 0.9 ? "hex" : "color");
+      } else if (difficulty <= 6) {
+        // Mid levels: Mixed challenges
+        currentChallenge = rand < 0.5 ? "name" : (rand < 0.75 ? "hex" : "color");
+      } else if (difficulty <= 10) {
+        // Higher levels: More hex and color challenges
+        currentChallenge = rand < 0.3 ? "name" : (rand < 0.65 ? "hex" : "color");
+      } else {
+        // Expert levels: Maximum variety with bonus challenges
+        if (rand < 0.25) currentChallenge = "name";
+        else if (rand < 0.5) currentChallenge = "hex";
+        else if (rand < 0.75) currentChallenge = "color";
+        else currentChallenge = "reverse"; // NEW: Reverse psychology challenge
+      }
+    }
+
+    // NEW: Display the challenge based on type
+    function displayChallenge(randomColor, availableColors) {
+      let displayText = "";
+      let displayColor = "";
+      let instruction = "";
+
+      switch (currentChallenge) {
+        case "name":
+          displayText = randomColor.name;
+          instruction = "Click the button with this COLOR NAME";
+          // Confusion mechanic for color display
+          if (difficulty <= 2) {
+            displayColor = Math.random() < 0.5 ? randomColor.hex : 
+              availableColors[Math.floor(Math.random() * availableColors.length)].hex;
+          } else if (difficulty <= 5) {
+            displayColor = Math.random() < 0.75 ? 
+              availableColors.filter(c => c.name !== currentColor)[Math.floor(Math.random() * (availableColors.length - 1))].hex :
+              randomColor.hex;
+          } else {
+            const confusingColors = availableColors.filter(c => c.name !== currentColor);
+            displayColor = confusingColors[Math.floor(Math.random() * confusingColors.length)].hex;
+          }
+          break;
+
+        case "hex":
+          displayText = randomColor.hex.toUpperCase();
+          instruction = "Click the button for this HEX CODE";
+          // Display hex in a random color for confusion
+          displayColor = availableColors[Math.floor(Math.random() * availableColors.length)].hex;
+          break;
+
+        case "color":
+          // Show the actual color, player must click the matching color button
+          displayText = "■■■■■"; // Color blocks
+          displayColor = randomColor.hex;
+          instruction = "Click the button that matches this COLOR";
+          break;
+
+        case "reverse":
+          displayText = randomColor.name;
+          instruction = "Click the button that is NOT this color name";
+          displayColor = randomColor.hex;
+          // For reverse, we need to pick a different correct answer
+          const incorrectColors = availableColors.filter(c => c.name !== currentColor);
+          if (incorrectColors.length > 0) {
+            currentColor = incorrectColors[Math.floor(Math.random() * incorrectColors.length)].name;
+          }
+          break;
+      }
+
+      colorNameElement.textContent = displayText;
+      colorNameElement.style.color = displayColor;
+      challengeInstruction.textContent = instruction;
+      
+      // Add extra visual effects for higher difficulties
+      if (difficulty > 8) {
+        colorNameElement.style.textShadow = "0 0 10px " + displayColor;
+      }
+    }
+
+    // Generate color buttons with enhanced difficulty
     function generateColorButtons(availableColors) {
       buttonsContainer.innerHTML = "";
-      availableColors.forEach(color => {
+      
+      // Shuffle the colors for button placement
+      const shuffledColors = [...availableColors].sort(() => Math.random() - 0.5);
+      
+      shuffledColors.forEach(color => {
         const button = document.createElement("button");
         button.className = "color-button";
         button.style.backgroundColor = color.hex;
         button.textContent = color.name;
+        
+        // At higher difficulties, make button text harder to read
+        if (difficulty > 7) {
+          // Make text color closer to background color for added difficulty
+          const bgColor = hexToRgb(color.hex);
+          if (bgColor) {
+            const textColor = getBrightness(bgColor) > 128 ? '#333' : '#fff';
+            button.style.color = textColor;
+            button.style.textShadow = difficulty > 10 ? 'none' : '1px 1px #333';
+          }
+        }
+        
         button.addEventListener("click", () => checkAnswer(color.name));
         buttonsContainer.appendChild(button);
       });
     }
 
+    // Helper functions for color manipulation
+    function hexToRgb(hex) {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : null;
+    }
+
+    function getBrightness(rgb) {
+      return (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+    }
+
     // Check if the clicked answer is correct
     function checkAnswer(selectedColor) {
-      if (selectedColor === currentColor) {
-	    correctSound.play();
+      let isCorrect = false;
+      
+      // Determine if answer is correct based on challenge type
+      switch (currentChallenge) {
+        case "name":
+        case "hex":
+        case "color":
+          isCorrect = selectedColor === currentColor;
+          break;
+        case "reverse":
+          isCorrect = selectedColor !== currentColor;
+          break;
+      }
+
+      if (isCorrect) {
+        correctSound.play();
         score++;
-        messageElement.textContent = "Correct!";
+        streak++;
+        
+        // Bonus points for streaks
+        if (streak >= 5 && streak % 5 === 0) {
+          score += 2; // Bonus points for every 5 in a row
+          messageElement.textContent = `Correct! STREAK BONUS +3 points!`;
+        } else if (streak >= 10) {
+          messageElement.textContent = `Correct! ON FIRE! 🔥`;
+        } else {
+          messageElement.textContent = "Correct!";
+        }
+        
         messageElement.className = "correct";
+        updateScore();
+        setNewRound();
       } else {
+        streak = 0; // Reset streak on wrong answer
         messageElement.textContent = "Game Over!";
         messageElement.className = "wrong";
-		gameOverSound.play();
-        endGame(); // End the game on a wrong answer
+        endGame();
       }
-      updateScore();
-      setNewRound();
     }
 
     // Update the score display
@@ -346,17 +550,24 @@
       score = 0;
       timeLeft = 60;
       difficulty = 1;
+      roundDelay = 0;
+      streak = 0;
+      currentChallenge = "name";
       levelElement.textContent = `Level: 1`;
       scoreElement.textContent = `Score: 0`;
       timerElement.textContent = `Time Left: 60s`;
-      customNotification.style.display = "none"; // Hide the custom notification
+      timerElement.style.color = "#333";
+      timerElement.style.animation = "none";
+      challengeInstruction.textContent = "";
+      colorNameElement.style.textShadow = "none";
+      customNotification.style.display = "none";
       gameContainer.classList.remove("hidden");
       startGame();
     }
 
     // Quit Game function (closes the page)
     function quitGame() {
-      window.close(); // Closes the browser tab
+      window.close();
     }
   </script>
 </body>
